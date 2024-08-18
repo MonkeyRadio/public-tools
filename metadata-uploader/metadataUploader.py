@@ -4,6 +4,12 @@ import requests
 from argparse import ArgumentParser
 import json
 
+def transform_metadata_trackNumber(metadata):
+    try:
+        metadata['trackNumber'] = int(metadata['trackNumber'])
+    except ValueError:
+        del metadata['trackNumber']
+
 def transform_metadata_year(metadata):
     try:
         metadata['year'] = int(metadata['year'])
@@ -22,6 +28,7 @@ def transform_metadata_type(metadata):
 def transform_metadata(metadata):
     transform_metadata_type(metadata)
     transform_metadata_year(metadata)
+    transform_metadata_trackNumber(metadata)
     return metadata
 
 def login(args):

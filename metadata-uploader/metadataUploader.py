@@ -23,7 +23,7 @@ def transform_metadata(metadata):
     return metadata
 
 def login(args):
-    url = f'{args.protocol}://api.{args.server_domain}/v4/auth/login'
+    url = f'{args.api_url}/v4/auth/login'
     data = {'nickname': args.nickname, 'password': args.password}
     response = requests.post(url, json=data)
     response.raise_for_status()
@@ -32,9 +32,8 @@ def login(args):
 
 def send_metadata(args):
     file_path = args.file_path
-    server_domain = args.server_domain
     token = login(args)
-    url = f'https://diffusion.{server_domain}/v1/metadata/current?radioId={args.radio_id}&contentId={args.content_id}'
+    url = f'{args.diffusion_api_url}/v1/metadata/current?radioId={args.radio_id}&contentId={args.content_id}'
     headers = {'Authorization': f'Bearer {token}'}
     with open(file_path, 'r') as file:
         metadata = file.read()
@@ -69,17 +68,16 @@ parser.add_argument(
   help='File path to watch for changes',
   )
 parser.add_argument(
-  '--server_domain',
+  '--api_url',
   type=str,
-  help='Domain of the server to send metadata to (ex: monkeyradio.fr)',
+  help='API URL to use for login',
   required=True,
   )
 parser.add_argument(
-  '--protocol',
+  '--diffusion_api_url',
   type=str,
-  help='Protocol to use for the server (http or https)',
-  choices=['http', 'https'],
-  default='https',
+  help='API URL to use for metadata diffusion',
+  required=True,
   )
 parser.add_argument(
   '--nickname',

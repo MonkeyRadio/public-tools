@@ -14,6 +14,8 @@ def transform_metadata_type(metadata):
     match metadata['type']:
         case 'Music':
             metadata['type'] = 'single'
+        case 'Musique':
+            metadata['type'] = 'single'
         case _:
             metadata['type'] = 'mediamask'
 

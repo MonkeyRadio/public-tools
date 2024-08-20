@@ -61,7 +61,7 @@ def detect_file_changes(args, interval=0.2):
         if current_modified != last_modified:
             try:
               print('Metadata file has changed, sending metadata...')
-              time.sleep(3)
+              time.sleep(1)
               send_metadata(args)
             except (Exception, requests.HTTPError) as e:
               print(f'Error: {e}')

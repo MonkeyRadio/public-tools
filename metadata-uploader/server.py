@@ -5,6 +5,9 @@ import metadataUploader
 import argsparser
 import requests
 
+def urldecode(url):
+    return unquote(url).replace('+', ' ')
+
 class WebServerHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
@@ -16,7 +19,7 @@ class WebServerHandler(BaseHTTPRequestHandler):
             post_data_dict = {}
             for item in list_of_post_data:
                 variable, value = item.split('=')
-                post_data_dict[variable] = unquote(value)
+                post_data_dict[variable] = urldecode(value)
             try:
               print('Metadata file has changed, sending metadata...')
               time.sleep(1)

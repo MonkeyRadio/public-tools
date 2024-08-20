@@ -21,8 +21,11 @@ class WebServerHandler(BaseHTTPRequestHandler):
               print('Metadata file has changed, sending metadata...')
               time.sleep(1)
               metadataUploader.send_metadata(args, post_data_dict)
+              self.send_response(200)
             except (Exception, requests.HTTPError) as e:
               print(f'Error: {e}')
+              self.send_response(500)
+            self.end_headers()
 
 
 def main():

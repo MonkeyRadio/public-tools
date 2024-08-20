@@ -4,6 +4,7 @@ import requests
 from argparse import ArgumentParser
 import json
 import time
+import pictureExtractor
 
 def transform_metadata_trackNumber(metadata):
     try:
@@ -39,6 +40,20 @@ def login(args):
     response.raise_for_status()
     return response.json()['token']
 
+def send_cover(metadata, token):
+    headers = {'Authorization': f'Bearer {token}'}
+    if 'internalId' in metadata:
+        url = f'{args.cdn_url}/radio-{args.radio_id}/{metadata["internalId"]}'
+        response = requests.get(url)
+        if response.status_code == 404 and 'filePath' in metadata:
+            extracted_images = pictureExtractor.extract(metadata["filePath"])
+            if extracted_images is None:
+                return
+            url = f'{args.api_url}/v4/cover/{args.radio_id}/{metadata["internalId"]}'
+            files = {"file": ({metadata["internalId"]}, extracted_images.image_data, 'image/jpeg')}
+            response = requests.post(url, headers=headers, files=files)
+            print(response.json())
+            response.raise_for_status()
 
 def send_metadata(args):
     file_path = args.file_path
@@ -48,8 +63,11 @@ def send_metadata(args):
     with open(file_path, 'r') as file:
         metadata = file.read()
     data = json.loads(metadata)
+    try:
+      send_cover(data, token)
+    except (Exception, requests.HTTPError) as e:
+      print(f'Cannot Send Cover Error: {e}')
     response = requests.post(url, headers=headers, json=transform_metadata(data))
-    print(response.json())
     response.raise_for_status()
     print('Metadata sent successfully')
 
@@ -88,6 +106,12 @@ parser.add_argument(
   '--diffusion_api_url',
   type=str,
   help='API URL to use for metadata diffusion',
+  required=True,
+  )
+parser.add_argument(
+  '--cdn_url',
+  type=str,
+  help='CDN URL to use for cover',
   required=True,
   )
 parser.add_argument(

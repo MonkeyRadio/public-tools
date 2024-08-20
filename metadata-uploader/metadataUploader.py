@@ -1,9 +1,5 @@
-import os
-import time
 import requests
-from argparse import ArgumentParser
 import json
-import time
 import pictureExtractor
 
 def transform_metadata_trackNumber(metadata):
@@ -11,6 +7,12 @@ def transform_metadata_trackNumber(metadata):
         metadata['trackNumber'] = int(metadata['trackNumber'])
     except ValueError:
         del metadata['trackNumber']
+
+def transform_metadata_duration(metadata):
+    try:
+        metadata['duration'] = int(metadata['duration'])
+    except ValueError:
+        del metadata['duration']
 
 def transform_metadata_year(metadata):
     try:
@@ -31,6 +33,7 @@ def transform_metadata(metadata):
     transform_metadata_type(metadata)
     transform_metadata_year(metadata)
     transform_metadata_trackNumber(metadata)
+    transform_metadata_duration(metadata)
     return metadata
 
 def login(args):
@@ -40,7 +43,7 @@ def login(args):
     response.raise_for_status()
     return response.json()['token']
 
-def send_cover(metadata, token):
+def send_cover(metadata, token, args):
     headers = {'Authorization': f'Bearer {token}'}
     if 'internalId' in metadata:
         url = f'{args.cdn_url}/radio-{args.radio_id}/{metadata["internalId"]}'
@@ -50,95 +53,19 @@ def send_cover(metadata, token):
             if extracted_images is None:
                 return
             url = f'{args.api_url}/v4/cover/{args.radio_id}/{metadata["internalId"]}'
-            files = {"file": ({metadata["internalId"]}, extracted_images.image_data, 'image/jpeg')}
+            files = {"file": (metadata["internalId"], extracted_images.image_data, 'image/jpeg')}
             response = requests.post(url, headers=headers, files=files)
-            print(response.json())
             response.raise_for_status()
 
-def send_metadata(args):
-    file_path = args.file_path
+def send_metadata(args, data):
     token = login(args)
     url = f'{args.diffusion_api_url}/v1/metadata/current?radioId={args.radio_id}&contentId={args.content_id}'
     headers = {'Authorization': f'Bearer {token}'}
-    with open(file_path, 'r') as file:
-        metadata = file.read()
-    data = json.loads(metadata)
     try:
-      send_cover(data, token)
+      send_cover(data, token, args)
     except (Exception, requests.HTTPError) as e:
       print(f'Cannot Send Cover Error: {e}')
     response = requests.post(url, headers=headers, json=transform_metadata(data))
+    print(response.json())
     response.raise_for_status()
     print('Metadata sent successfully')
-
-def detect_file_changes(args, interval=0.2):
-    file_path = args.file_path
-    last_modified = os.path.getmtime(file_path)
-    while True:
-        current_modified = os.path.getmtime(file_path)
-        if current_modified != last_modified:
-            try:
-              print('Metadata file has changed, sending metadata...')
-              time.sleep(1)
-              send_metadata(args)
-            except (Exception, requests.HTTPError) as e:
-              print(f'Error: {e}')
-            last_modified = current_modified
-        time.sleep(interval)
-
-
-parser = ArgumentParser(
-  add_help=True,
-  prog='Monkey Mairlist Metadata Uploader',
-  )
-parser.add_argument(
-  'file_path',
-  type=str,
-  help='File path to watch for changes',
-  )
-parser.add_argument(
-  '--api_url',
-  type=str,
-  help='API URL to use for login',
-  required=True,
-  )
-parser.add_argument(
-  '--diffusion_api_url',
-  type=str,
-  help='API URL to use for metadata diffusion',
-  required=True,
-  )
-parser.add_argument(
-  '--cdn_url',
-  type=str,
-  help='CDN URL to use for cover',
-  required=True,
-  )
-parser.add_argument(
-  '--nickname',
-  type=str,
-  help='Nickname to use for authentication',
-  required=True,
-  )
-parser.add_argument(
-  '--password',
-  type=str,
-  help='Password to use for authentication',
-  required=True,
-  )
-parser.add_argument(
-  '--radio_id',
-  type=str,
-  help='Radio ID to use for metadata',
-  required=True,
-  )
-parser.add_argument(
-  '--content_id',
-  type=str,
-  help='Content ID to use for metadata',
-  required=True,
-  )
-
-args = parser.parse_args()
-# Usage
-detect_file_changes(args)

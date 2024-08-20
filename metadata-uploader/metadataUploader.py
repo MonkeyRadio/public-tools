@@ -51,7 +51,7 @@ def send_cover(metadata, token, args):
         if response.status_code == 404 and 'filePath' in metadata:
             extracted_images = pictureExtractor.extract(metadata["filePath"])
             if extracted_images is None:
-                return
+                raise Exception(f'No image found at {metadata["filePath"]}')
             url = f'{args.api_url}/v4/cover/{args.radio_id}/{metadata["internalId"]}'
             files = {"file": (metadata["internalId"], extracted_images.image_data, 'image/jpeg')}
             response = requests.post(url, headers=headers, files=files)
